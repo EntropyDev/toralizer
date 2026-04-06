@@ -1,6 +1,6 @@
 /* toralize.c */
-#include "toralize.h "
- 
+#include "toralize.h"
+
 
 /*
 
@@ -9,9 +9,10 @@
 */
 int main(int argc, char *argv[]){
     char *host;
-    int port;
+    int port, s;
+    struct sockaddr_in sock;
 
-    int (argc < 3){
+    if(argc < 3){
         fprintf(stderr, "Usage: %s <host> <port> \n", argv[0]); 
         return -1;
     }
@@ -19,6 +20,25 @@ int main(int argc, char *argv[]){
     host = argv[1];
     port = atoi(argv[2]);
 
+    s = socket(AF_INET, SOCK_STREAM, 0);
+    
+    if(s<0){
+         perror("Socket");
+        return -1;
+    }
 
+    sock.sin_family = AF_INET;
+    sock.sin_port = htons(PROXYPORT);
+    sock.sin_addr.s_addr = inet_addr(PROXY); 
+
+    if(connect(s, (struct sockaddr *)&sock, sizeof(sock))){
+        perror("Connect");
+        return -1;
+    }
+
+    printf("Connected to proxy server");
+    close(s);
+
+    return 0;
      
 }
