@@ -7,10 +7,30 @@
 ./toralize 1.2.3.4 80
 
 */
+
+Req *request(const char *dstip, const int dstport){
+    Req *req;
+
+    req = malloc(reqsize);
+    req->vn = 4;
+    req->cd = 1;
+    req->dstport = htons(dstport);
+    req->dstip = inet_addr(dstip);
+    strncpy((char *)req->userid, USERNAME, 7);
+
+
+    return req;
+}
+
+
 int main(int argc, char *argv[]){
     char *host;
     int port, s;
     struct sockaddr_in sock;
+    Req *req;
+    Res *res;
+    char buf[ressize];
+    int success;
 
     if(argc < 3){
         fprintf(stderr, "Usage: %s <host> <port> \n", argv[0]); 
@@ -23,7 +43,7 @@ int main(int argc, char *argv[]){
     s = socket(AF_INET, SOCK_STREAM, 0);
     
     if(s<0){
-         perror("Socket");
+        perror("Socket");
         return -1;
     }
 
@@ -37,8 +57,33 @@ int main(int argc, char *argv[]){
     }
 
     printf("Connected to proxy server");
-    close(s);
+    req = request(host, port);
+    write(s, req, reqsize);
 
+    memset(buf, 0, ressize);
+    if (read(s, buf, ressize) < 1){
+        perror("Read");
+        free(req);
+        close(s);
+
+        return -1;
+    }
+
+    res = (Res *)buf;
+    success = (res->cd == 90);
+    if (!success){
+        fprintf(stderr, "Unable to traverse the proxy, error code: %d\n", res->cd);
+        close(s);
+        free(req);
+        return -1;
+    }
+
+    printf("Successfully connected through the proxy to "
+            "%s:%d\n", host, port);
+
+    close(s);
+    free(req);
+    
     return 0;
      
 }
